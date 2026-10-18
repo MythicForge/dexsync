@@ -1,0 +1,14 @@
+/target
+# Cartridge builds are reference material, too big for git
+/Cartridge-*/
+# Never commit ROMs; saves only if deliberately added as fixtures
+*.gba
+*.gb
+*.gbc
+*.nds
+*.3ds
+*.cia
+*.sav
+*.srm
+*.dsv
+!crates/**/fixtures/**

@@ -7,10 +7,10 @@ pub mod dex;
 pub mod gen3;
 mod text;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Everything we extract from one save file.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveInfo {
     pub game: Game,
@@ -24,7 +24,7 @@ pub struct SaveInfo {
     pub seen: Vec<u16>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Game {
     RubySapphire,
     Emerald,
