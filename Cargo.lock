@@ -148,10 +148,12 @@ version = "0.1.0"
 dependencies = [
  "dexsync-core",
  "dexsync-sources",
+ "directories",
  "notify",
  "notify-debouncer-mini",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror",
 ]
 

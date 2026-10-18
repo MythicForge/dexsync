@@ -1,0 +1,19 @@
+[package]
+name = "dexsync-watcher"
+description = "Watch configured sources and keep a parsed state store up to date."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dexsync-core = { version = "0.1.0", path = "../core" }
+dexsync-sources = { version = "0.1.0", path = "../sources" }
+directories = "6.0.0"
+notify = "8.2.0"
+notify-debouncer-mini = "0.7.0"
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile = "3.27.0"

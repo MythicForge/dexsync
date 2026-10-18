@@ -167,8 +167,8 @@ Keep `core` free of I/O so it ports to every target.
 
 ## 8. Milestones
 
-1. **M1 — Gen 3 parser + CLI** (`dex scan <path>`): slots/sections, checksums, owned/seen, names. Unit tests.
-2. **M2 — Sources + watcher**: config file of sources, presets for mGBA + RetroArch + Azahar, debounced watching, local store.
+1. ✅ **M1 — Gen 3 parser + CLI** (`dexsync scan <path>`): slots/sections, checksums, owned/seen. Verified on a real Emerald save. (Species names still to add.)
+2. ✅ **M2 — Sources + watcher**: `config.toml` of sources, `dexsync detect [--add]`, `source add/list/remove`, presets for RetroArch (incl. Steam libraries, `:/` paths) + mGBA (`savegamePath`) + Azahar family (`qt-config.ini` `sdmc_directory`), debounced `dexsync watch`, retry on failed checksum, atomic `state.json`. Tested live on Steam RetroArch + AzaharPlus (Linux). Windows/macOS/Flatpak paths unverified.
 3. **M3 — Gen 1/2 parsers.**
 4. **M4 — Setup UI + dex view**: source wizard with detected saves preview, dex grid, combined collection.
 5. **M5 — Gen 4/5**, then **Gen 6/7** (3DS `main`).

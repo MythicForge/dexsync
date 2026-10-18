@@ -1,0 +1,17 @@
+[package]
+name = "dexsync-sources"
+description = "Emulator presets, save discovery and the user's source config."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dexsync-core = { version = "0.1.0", path = "../core" }
+directories = "6.0.0"
+serde = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+toml = "1.1.8"
+walkdir = "2.5.0"
+
+[dev-dependencies]
+tempfile = "3.27.0"
