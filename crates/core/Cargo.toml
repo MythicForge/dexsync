@@ -1,0 +1,10 @@
+[package]
+name = "dexsync-core"
+description = "Pure Pokémon save parsers: bytes in, Pokédex flags out. No I/O."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
