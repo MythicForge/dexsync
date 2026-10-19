@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use dexsync_core::SaveInfo;
+use dexsync_core::{SaveInfo, species};
 use dexsync_sources::{Config, Env, Preset, Source, detect, discover, parse_file};
 use dexsync_watcher::{Event, State};
 use serde_json::json;
@@ -37,6 +37,15 @@ enum Command {
         /// Print JSON instead of a table.
         #[arg(long)]
         json: bool,
+    },
+    /// Merge every recorded save into one collection (the `collection.json` format).
+    Collection {
+        /// Print JSON instead of a summary.
+        #[arg(long)]
+        json: bool,
+        /// Also write the JSON to this file.
+        #[arg(long)]
+        out: Option<PathBuf>,
     },
     /// Scan configured sources, then keep watching them and update the state file.
     Watch {
@@ -169,16 +178,45 @@ fn run(cli: Cli) -> Res<bool> {
             Ok(results.iter().all(|(_, r)| r.is_ok()))
         }
 
+        Command::Collection { json, out } => {
+            let state = State::load(&state_path).map_err(|e| e.to_string())?;
+            let c = state.collection(&dexsync_watcher::device_name());
+            let text = serde_json::to_string_pretty(&c).unwrap();
+            if let Some(out) = out {
+                std::fs::write(&out, &text).map_err(|e| format!("{}: {e}", out.display()))?;
+            }
+            if json {
+                println!("{text}");
+            } else {
+                println!("Overall: owned {}  seen {}", c.overall.owned_count, c.overall.seen_count);
+                for t in &c.trainers {
+                    let games: Vec<_> = t.games.iter().map(|g| g.name()).collect();
+                    println!("\n{}  TID {:05}  ({})  owned {}  seen {}", t.name, t.tid, games.join(", "), t.dex.owned_count, t.dex.seen_count);
+                    println!("  owned: {}", names(&t.dex.owned));
+                }
+            }
+            Ok(true)
+        }
+
         Command::Watch { json } => {
             let config = load()?;
             if config.sources.is_empty() {
                 return Err("no sources configured; run `dexsync detect --add`".into());
             }
             eprintln!("Watching {} source(s). State: {}. Ctrl+C to stop.", config.sources.len(), state_path.display());
-            dexsync_watcher::watch(&config, &state_path, |e| print_event(e, json)).map_err(|e| e.to_string())?;
+            let never = std::sync::atomic::AtomicBool::new(false);
+            dexsync_watcher::watch(&config, &state_path, &never, |e| print_event(e, json)).map_err(|e| e.to_string())?;
             Ok(true)
         }
     }
+}
+
+fn names(ids: &[u16]) -> String {
+    if ids.is_empty() {
+        return "none".into();
+    }
+    ids.iter()
+        .map(|&n| species::get(n).map_or_else(|| format!("#{n:03}"), |s| format!("#{n:03} {}", s.name))).collect::<Vec<_>>().join(", ")
 }
 
 fn files_in(path: &Path) -> Vec<PathBuf> {
@@ -264,10 +302,10 @@ fn print_event(event: &Event, json: bool) {
             let what = if c.first { "found" } else { "updated" };
             println!("[{}] {what} {}\n  {}", c.source, c.path.display(), summary(&c.info));
             if !c.first && !c.new_owned.is_empty() {
-                println!("  new owned: {:?}", c.new_owned);
+                println!("  new owned: {}", names(&c.new_owned));
             }
             if !c.first && !c.new_seen.is_empty() {
-                println!("  new seen:  {:?}", c.new_seen);
+                println!("  new seen:  {}", names(&c.new_seen));
             }
         }
         Event::Error { path, message } => println!("error {}: {message}", path.display()),

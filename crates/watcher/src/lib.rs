@@ -5,10 +5,11 @@
 
 mod store;
 
-pub use store::{Change, Record, State, StoreError};
+pub use store::{Change, Record, State, StoreError, device_name};
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -95,9 +96,9 @@ fn owning_source<'a>(config: &'a Config, path: &Path) -> Option<&'a Source> {
         .max_by_key(|s| s.path.components().count())
 }
 
-/// Scan once, then watch every source until the process is stopped.
+/// Scan once, then watch every source until `stop` is set.
 /// `state_path` is rewritten after every change.
-pub fn watch(config: &Config, state_path: &Path, mut on_event: impl FnMut(&Event)) -> Result<(), WatchError> {
+pub fn watch(config: &Config, state_path: &Path, stop: &AtomicBool, mut on_event: impl FnMut(&Event)) -> Result<(), WatchError> {
     let mut state = State::load(state_path)?;
     let emit = |state: &State, events: Vec<Event>, on_event: &mut dyn FnMut(&Event)| -> Result<(), WatchError> {
         if events.iter().any(|e| matches!(e, Event::Changed(_))) {
@@ -116,7 +117,12 @@ pub fn watch(config: &Config, state_path: &Path, mut on_event: impl FnMut(&Event
         debouncer.watcher().watch(&source.path, RecursiveMode::Recursive)?;
     }
 
-    for batch in rx {
+    loop {
+        let batch = match rx.recv_timeout(Duration::from_millis(250)) {
+            Ok(batch) => batch,
+            Err(RecvTimeoutError::Timeout) if !stop.load(Ordering::Relaxed) => continue,
+            Err(_) => return Ok(()),
+        };
         let events = match batch {
             Ok(changes) => {
                 let mut paths: Vec<PathBuf> = changes.into_iter().map(|e| e.path).collect();
@@ -127,8 +133,10 @@ pub fn watch(config: &Config, state_path: &Path, mut on_event: impl FnMut(&Event
             Err(e) => vec![Event::Error { path: PathBuf::new(), message: format!("watcher: {e:?}") }],
         };
         emit(&state, events, &mut on_event)?;
+        if stop.load(Ordering::Relaxed) {
+            return Ok(());
+        }
     }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -145,6 +153,8 @@ mod tests {
         std::fs::create_dir_all(save.parent().unwrap()).unwrap();
         std::fs::copy(FIXTURE, &save).unwrap();
         let config = Config {
+            sprites: None,
+            sync: Default::default(),
             sources: vec![
                 Source { id: "ra".into(), preset: Preset::RetroArch, path: dir.path().into() },
                 Source { id: "missing".into(), preset: Preset::Azahar, path: dir.path().join("nope") },

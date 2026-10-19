@@ -3,8 +3,10 @@
 //! This crate does no I/O so it can be reused on every target (desktop,
 //! Android, WASM). Callers read the file and hand over the bytes.
 
+pub mod collection;
 pub mod dex;
 pub mod gen3;
+pub mod species;
 mod text;
 
 use serde::{Deserialize, Serialize};

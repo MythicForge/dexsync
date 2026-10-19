@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dexsync_core::SaveInfo;
+use dexsync_core::collection::{self, Collection, SaveRef};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,6 +43,20 @@ pub enum StoreError {
     Json(PathBuf, serde_json::Error),
 }
 
+fn now() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs())
+}
+
+/// Label for this machine's saves in a collection.
+pub fn device_name() -> String {
+    std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("COMPUTERNAME"))
+        .ok()
+        .or_else(|| std::fs::read_to_string("/etc/hostname").ok().map(|s| s.trim().to_string()))
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "this-device".into())
+}
+
 fn added(new: &[u16], old: &[u16]) -> Vec<u16> {
     new.iter().copied().filter(|n| old.binary_search(n).is_err()).collect()
 }
@@ -71,6 +86,13 @@ impl State {
         std::fs::rename(&tmp, path).map_err(io)
     }
 
+    /// Merge every recorded save into a [`Collection`] labelled with `device`.
+    pub fn collection(&self, device: &str) -> Collection {
+        let files: Vec<String> = self.saves.keys().map(|p| p.display().to_string()).collect();
+        let refs = self.saves.values().zip(&files).map(|(r, file)| SaveRef { device, file, info: &r.info });
+        collection::merge(refs, now())
+    }
+
     /// Record a freshly parsed save. Returns `None` if nothing changed.
     pub fn apply(&mut self, source: &str, path: PathBuf, info: SaveInfo) -> Option<Change> {
         let old = self.saves.get(&path);
@@ -86,8 +108,7 @@ impl State {
             new_seen: added(&info.seen, old_seen),
             info: info.clone(),
         };
-        let updated = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
-        self.saves.insert(path, Record { source: source.into(), info, updated });
+        self.saves.insert(path, Record { source: source.into(), info, updated: now() });
         Some(change)
     }
 }

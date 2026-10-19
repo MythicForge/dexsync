@@ -16,8 +16,41 @@ pub struct Source {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
+    /// Folder of `{id}.png` sprites for the UI (e.g. the handheld Pokédex's
+    /// `data/sprites`). Not bundled: sprites are Nintendo artwork.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sprites: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "SyncConfig::is_default")]
+    pub sync: SyncConfig,
     #[serde(default, rename = "source")]
     pub sources: Vec<Source>,
+}
+
+/// GitHub sync settings. The token itself lives in the OS keychain, never here.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SyncConfig {
+    /// GitHub App Client ID; overrides the one built into DexSync
+    /// (for forks, or anyone who registers their own app).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// The GitHub App's URL name (github.com/apps/<slug>), for the install link.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_slug: Option<String>,
+    /// `owner/name` of the user's private sync repo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repo: Option<String>,
+    /// Also upload raw save files (opt-in).
+    #[serde(default)]
+    pub backups: bool,
+    /// Name for this device in the repo; defaults to the hostname.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device: Option<String>,
+}
+
+impl SyncConfig {
+    fn is_default(&self) -> bool {
+        *self == SyncConfig::default()
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -99,5 +132,10 @@ mod tests {
         let loaded = Config::load(&file).unwrap();
         assert_eq!(loaded, c);
         assert!(std::fs::read_to_string(&file).unwrap().contains("[[source]]"));
+
+        c.sync.repo = Some("me/dexsync-data".into());
+        c.sprites = Some("/sprites".into());
+        c.save(&file).unwrap();
+        assert_eq!(Config::load(&file).unwrap(), c);
     }
 }

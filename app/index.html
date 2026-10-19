@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DexSync</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand"><span class="logo"></span>DexSync</div>
+      <nav class="tabs">
+        <button data-view="dex" class="active">Pokédex</button>
+        <button data-view="sources">Sources</button>
+        <button data-view="sync">Sync</button>
+      </nav>
+      <div class="totals" id="totals"></div>
+    </header>
+
+    <main>
+      <section id="view-dex" class="view">
+        <div class="filters">
+          <select id="trainer"></select>
+          <div class="chips" id="status"></div>
+          <div class="chips" id="gens"></div>
+          <input id="search" type="search" placeholder="Search name or number" />
+        </div>
+        <div id="sprite-hint" class="hint" hidden>
+          No sprites folder set, so the grid shows numbers only.
+          <button class="link" data-goto="sources">Set one in Sources</button>
+        </div>
+        <div id="grid" class="grid"></div>
+        <p id="empty" class="empty" hidden></p>
+      </section>
+
+      <section id="view-sources" class="view" hidden>
+        <div class="panel">
+          <h2>Watched folders</h2>
+          <p class="sub">DexSync reads saves from these folders and never writes to them.</p>
+          <ul id="sources" class="rows"></ul>
+          <div class="add-row">
+            <select id="add-preset">
+              <option value="retroarch">RetroArch</option>
+              <option value="mgba">mGBA</option>
+              <option value="azahar">Azahar / Citra</option>
+              <option value="custom">Other folder</option>
+            </select>
+            <button id="add-browse">Add folder…</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Found on this computer</h2>
+          <p class="sub">Emulator save folders DexSync detected. Add the ones you use.</p>
+          <ul id="suggestions" class="rows"></ul>
+        </div>
+
+        <div class="panel">
+          <h2>Sprites</h2>
+          <p class="sub">A folder of <code>1.png</code> … <code>1025.png</code>, e.g. your handheld Pokédex's <code>data/sprites</code>.</p>
+          <div class="add-row">
+            <code id="sprites-path" class="path"></code>
+            <button id="sprites-browse">Choose…</button>
+            <button id="sprites-clear" class="ghost">Clear</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Saves</h2>
+          <ul id="saves" class="rows"></ul>
+        </div>
+      </section>
+
+      <section id="view-sync" class="view" hidden>
+        <div class="panel">
+          <h2>GitHub account</h2>
+          <p class="sub">Your dex syncs through a private repo in your own GitHub account. DexSync can only reach the repos you choose.</p>
+          <div id="account"></div>
+        </div>
+
+        <div class="panel" id="repo-panel" hidden>
+          <h2>Sync repo</h2>
+          <div id="repo"></div>
+        </div>
+
+        <div class="panel" id="status-panel" hidden>
+          <h2>Status</h2>
+          <div id="sync-status" class="sync-status"></div>
+          <div class="add-row"><button id="sync-now">Sync now</button></div>
+        </div>
+
+        <div class="panel">
+          <h2>Options</h2>
+          <label class="check"><input type="checkbox" id="opt-backups" /> Also back up raw save files <span class="muted">(off by default)</span></label>
+          <div class="field">
+            <label for="opt-device">This device's name</label>
+            <input id="opt-device" type="text" placeholder="" />
+          </div>
+          <details>
+            <summary>Advanced</summary>
+            <div class="field">
+              <label for="opt-token">Personal access token</label>
+              <p class="sub">Instead of connecting: create a <b>fine-grained</b> token at github.com → Settings → Developer settings, limited to your sync repo, with <b>Contents: Read and write</b>.</p>
+              <div class="add-row"><input id="opt-token" type="password" placeholder="github_pat_…" /><button id="save-token">Use token</button></div>
+            </div>
+            <div class="field">
+              <label for="opt-client">GitHub App Client ID</label>
+              <p class="sub">Only if you registered your own DexSync GitHub App.</p>
+              <input id="opt-client" type="text" placeholder="Iv…" />
+            </div>
+          </details>
+          <div class="add-row"><button id="save-options">Save options</button></div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toasts" class="toasts"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

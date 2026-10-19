@@ -170,10 +170,10 @@ Keep `core` free of I/O so it ports to every target.
 1. ✅ **M1 — Gen 3 parser + CLI** (`dexsync scan <path>`): slots/sections, checksums, owned/seen. Verified on a real Emerald save. (Species names still to add.)
 2. ✅ **M2 — Sources + watcher**: `config.toml` of sources, `dexsync detect [--add]`, `source add/list/remove`, presets for RetroArch (incl. Steam libraries, `:/` paths) + mGBA (`savegamePath`) + Azahar family (`qt-config.ini` `sdmc_directory`), debounced `dexsync watch`, retry on failed checksum, atomic `state.json`. Tested live on Steam RetroArch + AzaharPlus (Linux). Windows/macOS/Flatpak paths unverified.
 3. **M3 — Gen 1/2 parsers.**
-4. **M4 — Setup UI + dex view**: source wizard with detected saves preview, dex grid, combined collection.
+4. ✅ **M4 — Setup UI + dex view** (Tauri 2 app: Pokédex grid, Sources, Sync): source wizard with detected saves preview, dex grid, combined collection.
 5. **M5 — Gen 4/5**, then **Gen 6/7** (3DS `main`).
 6. **M6 — Cartridge `library.json` integration** + local API.
-7. **M7 — GitHub sync (§10) + Android** (scoped storage / all-files access, user-picked folders).
+7. 🟡 **M7 — GitHub sync (§10) + Android**: sync crate + Sync tab done; verified with a fine-grained PAT against a real private repo (2026-10-18). GitHub App registration + Android still to do. (scoped storage / all-files access, user-picked folders).
 8. **M8 — Cartridge developer outreach** with working demo.
 
 ---
@@ -195,13 +195,30 @@ Use a **private GitHub repo** the user owns as free storage and sync between dev
 - **Raw save backups are opt-in** (setting, off by default): uploads saves (≤512 KB each) to `saves/` so a lost save can be restored.
 - **One file per device** (`devices/<device-id>.json`), merged when read → no merge conflicts between devices.
 - **Use the GitHub REST Contents API**, not a git binary → works on Android and needs no git install.
-- **Auth:** GitHub OAuth device flow (user enters a code on github.com) or a fine-grained token scoped to that single repo. Store in the OS keychain.
+- **Auth: one public "DexSync" GitHub App + device flow** (implemented in `crates/sync`, Sync tab in the app):
+  - Registered once by the maintainer, installable by **any account**. Client ID is public and built in (`DEFAULT_CLIENT_ID`); `[sync] client_id` / `app_slug` in `config.toml` override it for forks or self-registered apps.
+  - Settings: Device Flow on, webhook off, **Repository permissions → Contents: Read & write only**, user token expiry off (refresh needs the client secret, which a desktop app can't hold — verify).
+  - **Never generate a private key** → nobody, including the maintainer, can act as the app on users' repos. State this in the README.
+  - User flow: Connect GitHub → enter code → create private repo (prefilled link) → install app on that repo only → pick it in DexSync.
+  - Fallback: fine-grained personal access token (Contents read/write, one repo) under Advanced.
+  - Token in OS keychain (`keyring`), falling back to a 0600 file in the data dir; never in `config.toml`.
+- Sync runs 5 s after the last dex change, at startup, and on "Sync now". Writes are skipped when the git blob sha already matches, so unchanged syncs make zero commits.
 - **Private by default:** saves hold trainer names and IDs. Never upload ROMs.
 - Keep the backend behind a trait so a plain folder (Syncthing, Dropbox) or a hosted API can be added later.
 
+### Read-only clients: the handheld Pokédex (`~/projects/pokedex`)
+The Pi Zero handheld (pygame, Python) will pull from the same repo when it has Wi-Fi, using a repo set in its `config.toml`. It is a **reader only**; dexsync stays the only writer. (Not built yet — dexsync first.)
+
+What this means for the repo format:
+- **The repo layout is a public contract.** Document it, and put `"schema": 1` in every JSON file so readers can refuse versions they don't understand.
+- **`collection.json` is required, not optional.** dexsync regenerates it on every sync: the merged owned/seen per trainer and overall. Simple clients read one file and never need merge logic or Rust.
+- Must be fetchable with plain HTTPS (GitHub Contents API or `raw.githubusercontent.com` + token) — no git on the Pi.
+- **Pi Zero 2 W sync spec:** device flow shown on its own screen (same or a separate read-only "Viewer" app's Client ID, set in its config); fetch only `collection.json` with `If-None-Match` (304 = no body, no rate-limit cost); background thread so the UI never blocks; sync at boot, every 15–30 min on Wi-Fi, and "Sync now"; wait for a valid clock (NTP / PiSugar RTC) before the first TLS request; write `user.db` only when the ETag changed.
+- The handheld **merges** into its own `data/user.db` (`progress`: seen/caught/fav per National Dex id): union only, so entries marked by hand on the device are never lost.
+
 ```
 dexsync-data/                (user's private repo)
-  collection.json            merged view (optional, regenerated)
+  collection.json            merged view, regenerated every sync (read by simple clients)
   devices/steamdeck.json     per-device parsed saves
   devices/phone.json
   saves/<device>/<game>.sav  raw backups (only when enabled)

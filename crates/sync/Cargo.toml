@@ -1,0 +1,20 @@
+[package]
+name = "dexsync-sync"
+description = "Sync parsed dex data through a private GitHub repo (device flow sign-in, Contents API)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+base64 = "0.23.1"
+dexsync-core = { version = "0.1.0", path = "../core" }
+dexsync-watcher = { version = "0.1.0", path = "../watcher" }
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+sha1 = "0.11.0"
+thiserror.workspace = true
+ureq = { version = "3.4.2", features = ["json"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"

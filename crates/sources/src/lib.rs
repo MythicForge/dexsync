@@ -6,7 +6,7 @@ pub mod detect;
 pub mod discover;
 mod ini;
 
-pub use config::{Config, ConfigError, Source};
+pub use config::{Config, ConfigError, Source, SyncConfig};
 pub use detect::{Env, Suggestion, detect};
 pub use discover::{Found, discover, parse_file};
 

@@ -1,0 +1,24 @@
+[package]
+name = "dexsync-app"
+description = "DexSync desktop app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "dexsync_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+dexsync-core = { version = "0.1.0", path = "../../crates/core" }
+dexsync-sources = { version = "0.1.0", path = "../../crates/sources" }
+dexsync-sync = { version = "0.1.0", path = "../../crates/sync" }
+dexsync-watcher = { version = "0.1.0", path = "../../crates/watcher" }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tauri = { version = "2.12.4", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2.8.3"
+tauri-plugin-opener = "2.7.2"
+
+[build-dependencies]
+tauri-build = { version = "2.7.3", features = [] }
